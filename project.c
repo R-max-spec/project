@@ -27,19 +27,20 @@ void saveStudentData(char *account, struct S_Student student) {
         return;
     }
 
-    fprintf(file, "USN: %s\n", student.usn);
-    fprintf(file, "Name: %s\n", student.name);
-    fprintf(file, "Assignment Average: %.2f\n", student.avg_assignment);
-    fprintf(file, "Lab Average: %.2f\n", student.avg_lab);
-    fprintf(file, "CIE Average: %.2f\n", student.avg_cie);
-    fprintf(file, "SEE Average: %.2f\n", student.avg_see);
-    fprintf(file, "Final Weighted Result: %.2f\n\n", student.final_weighted_result);
+    fprintf(file, "%s|%s|%.2f|%.2f|%.2f|%.2f|%.2f\n", 
+            student.usn, 
+            student.name, 
+            student.avg_assignment, 
+            student.avg_lab, 
+            student.avg_cie, 
+            student.avg_see, 
+            student.final_weighted_result);
 
     fclose(file);
-    printf("Data saved successfully to %s\n", account);
+    printf("Data saved successfully for USN: %s\n", student.usn);
 }
 
-void viewAllData(char *account) {
+void searchStudentData(char *account, char *usn) {
     FILE *file = fopen(account, "r");
     if (file == NULL) {
         printf("No data found for this account.\n");
@@ -47,21 +48,61 @@ void viewAllData(char *account) {
     }
 
     char line[256];
-    printf("\n--------------- STUDENT DATA FOR %s ---------------\n", account);
-    while (fgets(line, sizeof(line), file) != NULL) {
-        printf("%s", line);
+    int found = 0;
+    while (fgets(line, sizeof(line), file)) {
+        char record_usn[20];
+        sscanf(line, "%[^|]", record_usn); // Extract the USN
+        if (strcmp(record_usn, usn) == 0) {
+            printf("\n--- Student Found ---\n");
+            printf("Details: %s", line);
+            found = 1;
+            break;
+        }
     }
-    printf("---------------------------------------------------\n");
+
+    if (!found) {
+        printf("No student found with USN: %s\n", usn);
+    }
 
     fclose(file);
 }
 
-void deleteAllData(char *account) {
-    if (remove(account) == 0) {
-        printf("All data deleted successfully for account: %s\n", account);
+void deleteStudentData(char *account, char *usn) {
+    FILE *file = fopen(account, "r");
+    if (file == NULL) {
+        printf("No data found for this account.\n");
+        return;
+    }
+
+    FILE *temp = fopen("temp.txt", "w");
+    if (temp == NULL) {
+        printf("Error creating temporary file.\n");
+        fclose(file);
+        return;
+    }
+
+    char line[256];
+    int found = 0;
+    while (fgets(line, sizeof(line), file)) {
+        char record_usn[20];
+        sscanf(line, "%[^|]", record_usn); // Extract the USN
+        if (strcmp(record_usn, usn) == 0) {
+            found = 1;
+            continue; // Skip writing the matched record
+        }
+        fprintf(temp, "%s", line);
+    }
+
+    fclose(file);
+    fclose(temp);
+
+    if (found) {
+        remove(account);
+        rename("temp.txt", account);
+        printf("Student with USN %s deleted successfully.\n", usn);
     } else {
-        perror("Error deleting file");
-        printf("No data file found for account: %s\n", account);
+        remove("temp.txt");
+        printf("No student found with USN: %s\n", usn);
     }
 }
 
@@ -108,17 +149,7 @@ void registerAccount() {
     }
 
     if (isDuplicate) {
-        printf("Username already exists. Please choose an option:\n");
-        printf("1. Try another username\n");
-        printf("2. Exit registration\n");
-        int choice;
-        scanf("%d", &choice);
-
-        if (choice == 1) {
-            registerAccount(); // Recursive call to retry registration
-        } else {
-            printf("Registration canceled.\n");
-        }
+        printf("Username already exists. Please try again.\n");
         return;
     }
 
@@ -143,7 +174,7 @@ int main() {
     struct S_Student student;
 
     while (1) {
-        printf("\n=========== Student Grade Calculator ===========\n");
+        printf("\n=========== Student Grade Manager ===========\n");
         printf("1. Login\n");
         printf("2. Register\n");
         printf("3. Exit\n");
@@ -158,8 +189,8 @@ int main() {
                     while (1) {
                         printf("\n=========== Menu ===========\n");
                         printf("1. Enter student data\n");
-                        printf("2. View all data\n");
-                        printf("3. Delete all data\n");
+                        printf("2. Search student by USN\n");
+                        printf("3. Delete student by USN\n");
                         printf("4. Logout\n");
                         printf("Enter your choice: ");
                         scanf("%d", &choice);
@@ -203,13 +234,21 @@ int main() {
                                 }
                                 break;
 
-                            case 2:
-                                viewAllData(account);
+                            case 2: {
+                                char usn[20];
+                                printf("Enter USN to search: ");
+                                scanf("%s", usn);
+                                searchStudentData(account, usn);
                                 break;
+                            }
 
-                            case 3:
-                                deleteAllData(account);
+                            case 3: {
+                                char usn[20];
+                                printf("Enter USN to delete: ");
+                                scanf("%s", usn);
+                                deleteStudentData(account, usn);
                                 break;
+                            }
 
                             case 4:
                                 printf("Logged out successfully.\n");
@@ -217,16 +256,6 @@ int main() {
 
                             default:
                                 printf("Invalid choice. Try again.\n");
-                        }
-
-                        // Ask the user if they want to continue
-                        char proceed;
-                        printf("\nDo you want to perform another action? (y/n): ");
-                        scanf(" %c", &proceed);
-
-                        if (proceed == 'n' || proceed == 'N') {
-                            printf("Signing out...\n");
-                            goto main_menu;
                         }
                     }
                 } else {
