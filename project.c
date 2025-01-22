@@ -13,7 +13,6 @@ struct S_Student {
     float final_weighted_result;
 };
 
-float average(float, float, float, float);
 float final_grade(float, float, float, float);
 
 const int weightofAssignment = 20;
@@ -91,14 +90,42 @@ int login(char *account) {
 }
 
 void registerAccount() {
-    char username[40], password[40];
+    char username[40], password[40], existingUsername[40], existingPassword[40];
+    int isDuplicate = 0;
 
     printf("Enter new username: ");
     scanf("%39s", username);
+
+    FILE *file = fopen("accounts.txt", "r");
+    if (file != NULL) {
+        while (fscanf(file, "%s %s", existingUsername, existingPassword) != EOF) {
+            if (strcmp(existingUsername, username) == 0) {
+                isDuplicate = 1;
+                break;
+            }
+        }
+        fclose(file);
+    }
+
+    if (isDuplicate) {
+        printf("Username already exists. Please choose an option:\n");
+        printf("1. Try another username\n");
+        printf("2. Exit registration\n");
+        int choice;
+        scanf("%d", &choice);
+
+        if (choice == 1) {
+            registerAccount(); // Recursive call to retry registration
+        } else {
+            printf("Registration canceled.\n");
+        }
+        return;
+    }
+
     printf("Enter new password: ");
     scanf("%39s", password);
 
-    FILE *file = fopen("accounts.txt", "a");
+    file = fopen("accounts.txt", "a");
     if (file == NULL) {
         printf("Error creating account.\n");
         return;
@@ -149,7 +176,9 @@ int main() {
                                     scanf("%s", student.usn);
 
                                     printf("Enter Name: ");
-                                    scanf("%s", student.name);
+                                    getchar(); // Clear the newline character from the buffer
+                                    fgets(student.name, sizeof(student.name), stdin);
+                                    student.name[strcspn(student.name, "\n")] = '\0'; // Remove the trailing newline
 
                                     printf("Enter assignment marks (avg): ");
                                     scanf("%f", &student.avg_assignment);
@@ -221,10 +250,6 @@ int main() {
     }
 
     return 0;
-}
-
-float average(float a, float b, float c, float d) {
-    return (a + b + c + d) / 4;
 }
 
 float final_grade(float r, float u, float v, float s) {
