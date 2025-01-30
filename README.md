@@ -39,18 +39,3 @@ student_grade_manager.c
 accounts.txt (stores usernames & passwords)
 <username>.txt (stores student records for each user)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-ChatGPT can ma
